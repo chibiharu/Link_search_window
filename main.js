@@ -2,7 +2,7 @@
 
 // var fruits = ['apple', 'apricot', 'avocado', 'blueberry', 'cherry', 'coconut', 'cranberry', 'dragonfruit', 'durian', 'grape', 'grapefruit', 'guava', 'kiwi fruit', 'lemon', 'lime', 'lychee', 'mango', 'melon', 'watermelon', 'miracle fruit', 'orange', 'bloodorange','clementine','mandarine','tangerine','papaya','passionfruit','peach','pear','persimmon','physalis','plum/prune','pineapple','pomegranate','raspberry','rambutan','star fruit','strawberry'];
 
-var fruits = [{href:"https://www.google.com", text:"A社関連"}, {href:"https://www.google.com", text:"M社関連"}]
+var fruits = [{href:"#", text:"A"}, {href:"#", text:"B"}]
 
 $(function() {
   var list = $("#list");
