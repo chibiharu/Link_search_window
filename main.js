@@ -1,7 +1,8 @@
 
-
+//サンプル(あえて残しておきます)
 // var fruits = ['apple', 'apricot', 'avocado', 'blueberry', 'cherry', 'coconut', 'cranberry', 'dragonfruit', 'durian', 'grape', 'grapefruit', 'guava', 'kiwi fruit', 'lemon', 'lime', 'lychee', 'mango', 'melon', 'watermelon', 'miracle fruit', 'orange', 'bloodorange','clementine','mandarine','tangerine','papaya','passionfruit','peach','pear','persimmon','physalis','plum/prune','pineapple','pomegranate','raspberry','rambutan','star fruit','strawberry'];
 
+//ページ内にあるアンカーを全て拾う(IE非対応)
 var fruits = $("a").map(function(i,e){return {href: e.href, text: e.text})
 
 $(function() {
@@ -57,7 +58,7 @@ $(function() {
 
       if ($(".list").length === 0) {
         // $(".list").length === 0は当てはまるものがないということなので、その処理。
-        appendList("一致する果物はありませんでした");
+        appendList("一致するキーワードはありませんでした");
       }
     }
     preWord = word;
