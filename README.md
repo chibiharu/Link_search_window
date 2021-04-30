@@ -17,3 +17,6 @@ jQuery v3.1.0
 * 作成者 → chibiharu    
 * mail → chibiharujijimasa@gmail.com
  
+# Licence
+ライセンス等はありませんのでご自由にお使い下さい。  
+There is no license, so feel free to use it.  
