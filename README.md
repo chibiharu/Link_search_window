@@ -5,26 +5,15 @@
 インクリメンタルサーチ機能
  
 # Requirement
-HTML5/CSS3
-javaScript
-jQuery v3.1.0
+HTML5/CSS3  
+javaScript  
+jQuery v3.1.0  
  
 # Note
- var fruits = $("a").map(function(i,e){return {href: e.href, text: e.text})がIEだと機能しないため
+以下コードがIEだと機能しないためIEだとアンカーの動収集ができない  
+ var fruits = $("a").map(function(i,e){return {href: e.href, text: e.text})
  
 # Author
+* 作成者 → chibiharu    
+* mail → chibiharujijimasa@gmail.com
  
-作成情報を列挙する
- 
-* 作成者
-* 所属
-* E-mail
- 
-# License
-ライセンスを明示する
- 
-"hoge" is under [MIT license](https://en.wikipedia.org/wiki/MIT_License).
- 
-社内向けなら社外秘であることを明示してる
- 
-"hoge" is Confidential.
