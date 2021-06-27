@@ -1,0 +1,313 @@
+### ターゲットグループARN ###
+### インスタンスID ###
+TG_NAME=chibi-lb
+TG_NAME=chibi-lb-scond-a
+ID=i-07a051b88a8948735
+ID=i-044895f70c0911393
+
+
+#####################################################
+# 設定ファイルを読み込んでキーと値を設定する
+# 仕様：
+#    ・in.txtを読み込む
+#    ・「KEY=PARAM」という書式に対応
+#    ・先頭「#」はコメントとして処理する
+#    ・=を含まない行は無視する
+#    ・スペースは考慮しない（KEY名、PARAM名に含む)
+#    ・KEY名、PARAM名に「=」含む場合は考慮しない
+#    ・KEY名の重複は考慮しない
+#####################################################
+
+# ターゲット名を代入
+$TARGET_GROUP_NAME="chibi-lb"
+
+# TGに所属しているインスタンスのインスタンスIDを設定ファイルに出力
+aws elbv2 describe-target-health --target-group-arn $(aws elbv2 describe-target-groups --query "TargetGroups[].TargetGroupArn" --output text --name ${TARGET_GROUP_NAME}) --query "TargetHealthDescriptions[].[Target.Id]" --output text >> ./tmp/target_id.conf
+
+# 設定ファイルの読み込み
+$f = (Get-Content .\tmp\target_id.conf) -as [string[]]
+
+#パラメータリストを連想配列設定
+$list_param = @{}
+
+# ループ処理
+foreach ($l in $f) {
+
+    # コメント処理
+    # 「#」が先頭にある場合は飛ばす
+    # #で始まるコメント行かを判定（スペースは無視）
+    if($l.TrimStart().StartsWith("#")){
+        continue
+     }
+
+     #パラメータリストを連想配列設定
+     $list_param = @{}
+     # 「ID」を含むか確認
+     if($l.Contains("ID")){
+         $tmp_list = $l.Split("=")
+          # キーと値を設定
+          $list_param[$tmp_list[0]] = $tmp_list[1]
+          #Write-Host $list_param[$tmp_list[0]]
+          $Id=$list_param[$tmp_list[0]]
+
+          ### NLBから指定のターゲットを切り離す ###
+          aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --query "TargetGroups[].TargetGroupArn" --output text --name ${TARGET_GROUP_NAME}) --targets Id=${Id}
+          }
+      }
+
+### 設定ファイル削除 ###
+echo $null > .\tmp\target_id.conf
+
+### 現在のTGの状態確認 ###
+aws elbv2 describe-target-health --target-group-arn $(aws elbv2 describe-target-groups --query "TargetGroups[].TargetGroupArn" --output text --name ${TARGET_GROUP_NAME})
+
+
+#ここまで
+
+#ここからべつ honmono
+#####################################################
+# 設定ファイルを読み込んでキーと値を設定する
+# 仕様：
+#    ・インスタンスIDとTG名が記載された設定ファイルを読み込む
+#    ・「KEY=PARAM」という書式に対応
+#    ・先頭「#」はコメントとして処理する
+#    ・=を含まない行は無視する
+#    ・スペースは考慮しない（KEY名、PARAM名に含む)
+#    ・KEY名の重複は考慮しない
+#####################################################
+
+# 設定ファイルの読み込み
+$f = (Get-Content ./tmp/in.conf) -as [string[]]
+
+# パラメータリストを連想配列設定
+$list_param = @{}
+
+##### NLBからの切り離し処理 #####
+### 設定ファイルのTG_NAMEを取得 ###
+foreach ($list_arg in $f) {
+
+    # コメント処理
+    # "#"で始まるコメント行かを判定（「#」が先頭にある場合は飛ばす)（スペースは無視）
+    if($list_arg.TrimStart().StartsWith("#")){
+        continue
+    }
+
+    # 設定ファイルを回して「TG_NAME=*」を見つけたら発火
+    if($list_arg.Contains("TG_NAME")){
+        $tmp_list = $list_arg.Split("=")
+        # キーと値を設定
+        $list_param[$tmp_list[0]] = $tmp_list[1]
+        # TG名を取得
+        $TARGET_GROUP_NAME=$list_param[$tmp_list[0]]
+
+            ### 設定ファイルのIDを取得 ###
+            foreach ($list_arg_id in $f) {
+
+                # コメント処理
+                # "#"で始まるコメント行かを判定（「#」が先頭にある場合は飛ばす)（スペースは無視）
+                if($list_arg_id.TrimStart().StartsWith("#")){
+                    continue
+                }
+
+                # 設定ファイルを回して「ID=*」を見つけたら発火
+                if($list_arg_id.Contains("ID")){
+                    $tmp_list = $list_arg_id.Split("=")
+                    # キーと値を設定
+                    $list_param[$tmp_list[0]] = $tmp_list[1]
+                    # インスタンスID名を取得
+                    $Id=$list_param[$tmp_list[0]]
+                    ### NLBから指定のターゲットを切り離す ###
+                    aws elbv2 register-targets --target-group-arn $(aws elbv2 describe-target-groups --query "TargetGroups[].TargetGroupArn" --output text --name ${TARGET_GROUP_NAME}) --targets Id=${Id}
+
+                } # if閉じ
+             } # ループ閉じ
+    } # if閉じ
+} # ループ閉じ
+
+###################################################
+# １：TGを回す
+# ２：do whileでsleepを回しながらヘルシー判定を行う
+# ３：ヘルシーを出力する
+
+### 設定ファイルのTG_NAMEを取得 ###
+foreach ($list_arg in $f) {
+
+    # コメント処理
+    # "#"で始まるコメント行かを判定（「#」が先頭にある場合は飛ばす)（スペースは無視）
+    if($list_arg.TrimStart().StartsWith("#")){
+        continue
+    }
+
+    # 設定ファイルを回して「TG_NAME=*」を見つけたら発火
+    if($list_arg.Contains("TG_NAME")){
+        $tmp_list = $list_arg.Split("=")
+        # キーと値を設定
+        $list_param[$tmp_list[0]] = $tmp_list[1]
+        # TG名を取得
+        $TARGET_GROUP_NAME=$list_param[$tmp_list[0]]
+
+        ### ここから状態判定ループ入る
+        while ($true) {
+            # 状態（healthy or unused）を取得する
+            $state=$(aws elbv2 describe-target-health --target-group-arn $(aws elbv2 describe-target-groups --query "TargetGroups[].TargetGroupArn" --output text --name ${TARGET_GROUP_NAME}) --query TargetHealthDescriptions[].TargetHealth.State --output text)
+            # 状態を判定してヘルシーになるまでsleepする
+            if ( $state -eq "healthy" ) {
+                 break
+            }
+            #sleep
+            sleep 3
+        }
+     }
+}
+
+
+
+#alb_waiter() {
+  #while :
+  #do
+    # 状態（healthy or unused）を取得する
+    #state=$(aws elbv2 describe-target-health --target-group-arn $1 --targets Id=$2 --query TargetHealthDescriptions[].TargetHealth.State --output text)
+    #if [ "$3" = "${state}" ]; then
+      #echo "  TargetGroupARN: $1 InstanceId: $2 State:$3"
+     # break
+   # else
+     # echo "  TargetGroupARN: $1 InstanceId: $2 State:$state"
+   # fi
+   # sleep ${SLEEP}
+  #done
+#}
+
+
+###################################################
+
+foreach ($list_arg in $f) {
+
+    # コメント処理
+    # "#"で始まるコメント行かを判定（「#」が先頭にある場合は飛ばす)（スペースは無視）
+    if($list_arg.TrimStart().StartsWith("#")){
+        continue
+    }
+
+    # 設定ファイルを回して「TG_NAME=*」を見つけたら発火
+    if($list_arg.Contains("TG_NAME")){
+        $tmp_list = $list_arg.Split("=")
+        # キーと値を設定
+        $list_param[$tmp_list[0]] = $tmp_list[1]
+        # TG名を取得
+        $TARGET_GROUP_NAME=$list_param[$tmp_list[0]]
+
+        ### 現在のTGの状態確認 ###
+        aws elbv2 describe-target-health --target-group-arn $(aws elbv2 describe-target-groups --query "TargetGroups[].TargetGroupArn" --output text --name ${TARGET_GROUP_NAME})
+
+}
+}
+
+
+
+##VBA
+
+
+'### M1_キックマクロ ###
+
+Sub kick_macro()
+  
+  '// 宣言
+  Dim i As Long
+  Dim tb As Long
+  Dim ta As Long
+  Dim cell_ip_range As String
+  
+  '// 処理を回す数を取得
+  cell_ip_range = Worksheets("Sheet1").Range("B4").Value
+  cell_ip_range_after = Worksheets("Sheet1").Range("B5").Value
+  
+  '// チェック処理
+  For tb = 1 To cell_ip_range
+    DoEvents
+    Call フォーム入力_t
+  Next tb
+
+End Sub
+
+'### M2_sleep用 ###
+#If Win64 Then
+    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr)
+#Else
+    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#End If
+
+'### フォームにIP入力して結果表示させる ###
+
+Sub フォーム入力_t()
+
+  '// 宣言
+  Dim objIE As InternetExplorer
+  Set objIE = New InternetExplorer
+  
+  '// IEを開く
+  objIE.Visible = True
+  objIE.navigate "https://www.ers.trendmicro.com/reputations/"
+  
+  '// 読み込み待ち
+  Do While objIE.Busy = True Or objIE.readyState < READYSTATE_COMPLETE
+        DoEvents
+  Loop
+  
+  '// 宣言
+  Dim htmlDoc As HTMLDocument
+  Set htmlDoc = objIE.document
+  Dim objInpSel As HTMLSelectElement
+  
+  '// チェック対象のIPを取得
+  Dim ip_range As String
+  ip_range = Worksheets("top").Range("C1").End(xlDown).Offset(1, -1).Value
+  
+  '// フォームにIP入力
+  htmlDoc.getElementsByName("data[Reputation][ip]")(0).Value = ip_range
+  
+  '// ボタンクリック
+  htmlDoc.getElementById("IPLookupBtn").Click
+
+  '// ※ここに日本語化のコードを入れたい
+  '############################################
+  
+  
+  '############################################
+  
+  '// 読み込み待ち
+  Do While objIE.Busy = True Or objIE.readyState < READYSTATE_COMPLETE
+        DoEvents
+  Loop
+  
+  '// webでの処理が終わるまでマクロの処理を停止する
+  Dim time As Long
+  time = 5000
+  Sleep time
+  
+  '// シートのセルA1にテキストを出力
+  Worksheets("Sheet1").Range("A1").Value = htmlDoc.body.innerText
+  
+  '// オブジェの開放
+  objIE.Quit
+  Set objIE = Nothing
+  
+  '// 判定処理を行う
+  Call trend_hantei
+
+End Sub
+
+
+'### M3_IPのブラックリスト判定をセルに対する文字列一致で行う ###
+
+Sub trend_hantei()
+
+    Dim Rng As Range
+    Set Rng = Worksheets("Sheet1").Range("A1").Find(What:="レピュテーション:スパムメール送信者リストから除外以下に記載:なしフィードバック:グローバル承認済みリストにこのIPアドレスをノミネートします", LookIn:=xlValues, LookAt:=xlPart)
+    If Not Rng Is Nothing Then
+        Worksheets("top").Range("C1").End(xlDown).Offset(1).Value = "○"
+    Else
+        Worksheets("top").Range("C1").End(xlDown).Offset(1).Value = "×"
+    End If
+
+End Sub
+
